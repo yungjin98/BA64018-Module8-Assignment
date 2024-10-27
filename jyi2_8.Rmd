@@ -1,0 +1,148 @@
+---
+title: "Assignment DEA"
+author: "Jingting Yi"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+# Formulation of problem
+
+Let $x_{11}, x_{12}, ..., x_{16}$ be the staff hours per day for Facilities 1, 2, ..., 6. Let $x_{21}, x_{22}, ..., x_{26}$ be the supplies per day for Facilities 1, 2, ..., 6.
+
+Let $y_{11}, y_{12}, ..., y_{16}$ be the reimbursed patient-days for Facilities 1, 2, ..., 6. Let $y_{21}, y_{22}, ..., y_{26}$ be the privately paid patient days for Facilities 1, 2, ..., 6.
+
+Let $v_1, v_2$ be the weights for staff hours per day and supplies per day, and let $u_1, u_2$ be the weights for reimbursed patient-days and privately paid patient days.
+
+Therefore, the objective of the problem is to analyze the efficiency $E_k$ for the $k$-th facility, defined as:
+
+$$
+E_k=\frac{u_1 y_{1k} + u_2 y_{2k}}{v_1 x_{1k} + v_2 x_{2k}}
+$$
+
+With the efficiencies found, it will be possible to compare the efficiencies between different facilities.
+
+
+# DEA analysis under different assumptions
+
+To solve the DEA problem, we will first include the required library, and prepare the inputs needed for the solving process:
+
+```{r initialize, message=FALSE}
+library(Benchmarking)
+inputs <- matrix(c(100, 300, 320, 500, 350, 340,
+                   0.3, 0.6, 1.2, 2, 1.4, 0.7), ncol = 2)
+colnames(inputs) <- c('Staffing labor', 'Cost of supplies')
+outputs <- matrix(c(15, 15, 40, 28, 20, 14,
+                    3.5, 20, 11, 42, 25, 15), ncol = 2) * 1000
+colnames(outputs) <- c('Reimbursed by third-party', 'Reimbursed privately')
+```
+
+Then, it will be possible to solve the problem under different assumptions.
+
+## Solutions
+
+The efficiencies acquired using different assumptions are listed below:
+
+```{r solving}
+sol.fdh <- dea(inputs, outputs, 'fdh')
+sol.crs <- dea(inputs, outputs, 'crs')
+sol.vrs <- dea(inputs, outputs, 'vrs')
+sol.irs <- dea(inputs, outputs, 'irs')
+sol.drs <- dea(inputs, outputs, 'drs')
+sol.frh <- dea(inputs, outputs, 'add')
+effs <- data.frame(Facility = seq(6),
+                   FDH = sol.fdh$eff,
+                   CRS = sol.crs$eff,
+                   VRS = sol.vrs$eff,
+                   IRS = sol.irs$eff,
+                   DRS = sol.drs$eff,
+                   FRH = sol.frh$eff)
+effs
+```
+
+From the results, we can see that under all six assumptions, Facilities 1, 2, and 4 always have the highest efficiencies. Facility 3 has the highest efficiency only under the FDH, VRS, DRS, and FDH assumptions, Facility 5 has the highest efficiency only under the FDH and FRH assumptions. Facility 6, however, never had the highest efficiency under any of the assumptions.
+
+## Peers
+
+The peers in a DEA analysis tells us about the facilities that an inefficient facility can refer to for improving its efficiency. The results for the peers in the solution under each assumption are listed below:
+
+```{r peers}
+peers(sol.fdh)
+peers(sol.crs)
+peers(sol.vrs)
+peers(sol.irs)
+peers(sol.drs)
+peers(sol.frh)
+```
+
+From the results, we can see that:
+1. Under the FDH assumption, only Facility 6 is not efficient, it should refer to Facility 2 for improving its efficiency.
+2. Under the CRS assumption, Facilities 3, 5, and 6 are not efficient, Facility 3 and 5 should refer to Facilities 1 and 4, Facility 6 should refer to Facilities 1 and 2 for improving their efficiency.
+3. Under the VRS assumption, Facilities 5 and 6 is not efficient, Facility 5 should refer to Facilities 1 and 4, Facility 6 should refer to Facilities 1 and 2 for improving their efficiency.
+4. Under the IRS assumption, Facilities 3, 5, and 6 are not efficient, Facility 3 and 5 should refer to Facilities 1 and 4, Facility 6 should refer to Facilities 1 and 2 for improving their efficiency.
+5. Under the DRS assumption, Facilities 5 and 6 is not efficient, Facility 5 should refer to Facilities 1 and 4, Facility 6 should refer to Facilities 1 and 2 for improving their efficiency.
+6. Under the FRH assumption, only Facility 6 is not efficient, it should refer to Facility 2 for improving its efficiency.
+
+## Lambdas
+
+The lambdas in DEA analysis provides further details about the peers, in the form a series of coefficients for the peers to let the analyst know how an inefficient unit performs compared with a combination of a series of efficient units. The following code extracts the lambdas under each assumption.
+
+```{r}
+lambda(sol.fdh)
+lambda(sol.crs)
+lambda(sol.vrs)
+lambda(sol.irs)
+lambda(sol.drs)
+lambda(sol.frh)
+```
+
+From the results, we can find that:
+1. Under the FDH and FRH assumptions, only Facility 6 is not efficient, it only needs to use Facility 2 as its reference.
+2. Under the CRS assumption, Facilities 3, 5, and 6 are not efficient, Facility 3 should use Facilities 1 and 4 as the reference, with the weights of 2.579 and 0.047, Facility 5 should use Facilities 1 and 4 as the reference, with the weights of 0.263 and 0.573, Facility 6 should use Facilities 1 and 2 as the reference with the weights of 0.222 and 0.711.
+3. Under the VRS assumption, Facilities 5 and 6 is not efficient, Facility 5 should use Facilities 1 and 4 as the reference, with the weights of 0.442 and 0.558, Facility 6 should use Facilities 1 and 2 as the reference with the weights of 0.303 and 0.697.
+4. Under the IRS assumption, Facilities 3, 5, and 6 are not efficient, Facility 3 should use Facilities 1 and 4 as the reference, with the weights of 2.579 and 0.047, Facility 5 should use Facilities 1 and 4 as the reference, with the weights of 0.441 and 0.558, Facility 6 should use Facilities 1 and 2 as the reference with the weights of 0.303 and 0.697.
+5. Under the DRS assumption, Facilities 5 and 6 is not efficient, Facility 5 should use Facilities 1 and 4 as the reference, with the weights of 0.263 and 0.573, Facility 6 should use Facilities 1 and 2 as the reference with the weights of 0.222 and 0.711.
+
+# Summary of results
+
+To be brief, the results can be summarized as below:
+
+| Assumption | Non-efficient facility | Reference 1 | Weight for Ref. 1 | Reference 2 | Weight for Ref. 2|
+|:------:|:------:|:------:|:------:|:------:|:------:|
+|FDH| 6 | 2 | 1 | - | - |
+|CRS| 3 | 1 | 2.579 | 4 | 0.047 |
+|CRS| 5 | 1 | 0.263 | 4 | 0.573 |
+|CRS| 6 | 1 | 0.222 | 2 | 0.711 |
+|VRS| 5 | 1 | 0.442 | 4 | 0.558 |
+|VRS| 6 | 1 | 0.303 | 2 | 0.697 |
+|IRS| 3 | 1 | 2.579 | 4 | 0.047 |
+|IRS| 5 | 1 | 0.441 | 4 | 0.558 |
+|IRS| 6 | 1 | 0.303 | 2 | 0.697 |
+|DRS| 5 | 1 | 0.263 | 4 | 0.573 |
+|DRS| 6 | 1 | 0.222 | 2 | 0.711 |
+|FRH| 6 | 2 | 1 | - | - |
+
+# Comparison and contrast
+
+If we rearrange the table above by the non-efficient facilities, we can find that:
+
+| Assumption | Non-efficient facility | Reference 1 | Weight for Ref. 1 | Reference 2 | Weight for Ref. 2|
+|:------:|:------:|:------:|:------:|:------:|:------:|
+|CRS| 3 | 1 | 2.579 | 4 | 0.047 |
+|IRS| 3 | 1 | 2.579 | 4 | 0.047 |
+|CRS| 5 | 1 | 0.263 | 4 | 0.573 |
+|VRS| 5 | 1 | 0.442 | 4 | 0.558 |
+|IRS| 5 | 1 | 0.441 | 4 | 0.558 |
+|DRS| 5 | 1 | 0.263 | 4 | 0.573 |
+|FDH| 6 | 2 | 1 | - | - |
+|CRS| 6 | 1 | 0.222 | 2 | 0.711 |
+|VRS| 6 | 1 | 0.303 | 2 | 0.697 |
+|IRS| 6 | 1 | 0.303 | 2 | 0.697 |
+|DRS| 6 | 1 | 0.222 | 2 | 0.711 |
+|FRH| 6 | 2 | 1 | - | - |
+
+From the results, we can see that under all assumptions, Facility 6 is found as non-efficient, it should always consider Facilities 1 as the reference, and 4 out of 6 assumptions also suggested Facility 2 as a reference. Facility 2 is either not considered, or considered with a larger weight than Facility 1.
+
+Facility 5 is considered non-efficient for 4 out of 6 assumptions, and it should always refer to Facilities 1 and 4 as the reference. The weight for Facility 4 is always larger than that for Facility 1.
+
+Facility 3 is considered non-efficient for only 2 out of 6 assumptions, and it should also always refer to Facilities 1 and 4 as the reference. The weight for Facility 1 is always much larger than that for Facility 4.
